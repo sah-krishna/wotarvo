@@ -9,18 +9,28 @@ function getAQIReview(aqi) {
 }
 
 function AQIGauge({ value }) {
-  // SVG gauge for AQI (0-300)
   const percent = Math.min(Math.max(value, 0), 300) / 300;
   const angle = percent * 180;
-  const r = 32;
+  const r = 36; // needle length
   const cx = 40;
   const cy = 40;
-  // Color stops for AQI
-  let needleColor = '#22c55e';
+  const needleWidth = 6; // width of the base of the needle
+  let needleColor = '#ef4444'; // red by default
   if (value > 200) needleColor = '#a21caf';
   else if (value > 150) needleColor = '#ef4444';
   else if (value > 100) needleColor = '#f59e42';
   else if (value > 50) needleColor = '#eab308';
+  else needleColor = '#22c55e';
+
+  // Calculate needle triangle points
+  const theta = (Math.PI - angle * Math.PI / 180);
+  const tipX = cx + r * Math.cos(theta);
+  const tipY = cy - r * Math.sin(theta);
+  const baseLeftX = cx + (needleWidth / 2) * Math.cos(theta + Math.PI / 2);
+  const baseLeftY = cy - (needleWidth / 2) * Math.sin(theta + Math.PI / 2);
+  const baseRightX = cx + (needleWidth / 2) * Math.cos(theta - Math.PI / 2);
+  const baseRightY = cy - (needleWidth / 2) * Math.sin(theta - Math.PI / 2);
+
   return (
     <svg width="80" height="48" viewBox="0 0 80 48">
       <defs>
@@ -33,8 +43,20 @@ function AQIGauge({ value }) {
       </defs>
       <path d="M8,40 A32,32 0 0,1 72,40" fill="none" stroke="url(#aqi-gradient)" strokeWidth="8" />
       <circle cx={cx} cy={cy} r="28" fill="none" stroke="#f3f4f6" strokeWidth="4" />
-      {/* Needle */}
-      <line x1={cx} y1={cy} x2={cx + r * Math.cos(Math.PI - angle * Math.PI / 180)} y2={cy - r * Math.sin(Math.PI - angle * Math.PI / 180)} stroke={needleColor} strokeWidth="4" strokeLinecap="round" />
+      {/* Speedometer-style pointed needle */}
+      <g>
+        <polygon
+          points={`
+            ${tipX},${tipY}
+            ${baseLeftX},${baseLeftY}
+            ${baseRightX},${baseRightY}
+          `}
+          fill={needleColor}
+          style={{ filter: 'drop-shadow(0 1px 2px #0003)' }}
+        />
+        {/* Needle base (pivot) */}
+        <circle cx={cx} cy={cy} r="5" fill="#222" stroke="#fff" strokeWidth="2" />
+      </g>
     </svg>
   );
 }
