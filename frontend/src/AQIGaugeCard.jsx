@@ -39,6 +39,13 @@ function AQIGauge({ value }) {
   );
 }
 
+function normalizePoints(points, minY = 20, maxY = 90) {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  if (max === min) return points.map(() => (minY + maxY) / 2);
+  return points.map(v => maxY - ((v - min) / (max - min)) * (maxY - minY));
+}
+
 export default function AQIGaugeCard({
   aqi = 20,
   review,
@@ -63,6 +70,14 @@ export default function AQIGaugeCard({
     computedReview.color === 'orange' ? 'bg-orange-100 text-orange-700' :
     computedReview.color === 'red' ? 'bg-red-100 text-red-700' :
     'bg-purple-100 text-purple-700';
+
+  // Normalize forecast points for SVG
+  const normPoints = normalizePoints(forecast.points);
+  const highlightY = normPoints[forecast.highlightIndex];
+  const minVal = Math.min(...forecast.points);
+  const maxVal = Math.max(...forecast.points);
+  const midVal = Math.round((minVal + maxVal) / 2);
+
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-xl w-full relative">
       {/* AQI Review */}
@@ -98,19 +113,28 @@ export default function AQIGaugeCard({
       <div className="mt-2">
         <div className="font-semibold text-gray-700 mb-2">Air Quality Forecast</div>
         <div className="bg-gray-100 rounded-xl p-4">
-          <svg viewBox="0 0 320 60" width="100%" height="60">
+          <svg viewBox="0 0 320 100" width="100%" height="100">
             {/* X axis */}
-            <line x1="20" y1="50" x2="300" y2="50" stroke="#d1d5db" strokeWidth="2" />
+            <line x1="20" y1="90" x2="300" y2="90" stroke="#d1d5db" strokeWidth="2" />
             {/* Y axis */}
-            <line x1="20" y1="10" x2="20" y2="50" stroke="#d1d5db" strokeWidth="2" />
+            <line x1="20" y1="20" x2="20" y2="90" stroke="#d1d5db" strokeWidth="2" />
+            {/* Y axis ticks and labels */}
+            <g>
+              <line x1="16" y1="90" x2="24" y2="90" stroke="#d1d5db" strokeWidth="2" />
+              <text x="8" y="94" fontSize="10" fill="#888" textAnchor="start">{minVal}</text>
+              <line x1="16" y1="55" x2="24" y2="55" stroke="#d1d5db" strokeWidth="2" />
+              <text x="8" y="59" fontSize="10" fill="#888" textAnchor="start">{midVal}</text>
+              <line x1="16" y1="20" x2="24" y2="20" stroke="#d1d5db" strokeWidth="2" />
+              <text x="8" y="24" fontSize="10" fill="#888" textAnchor="start">{maxVal}</text>
+            </g>
             {/* Forecast line */}
-            <polyline fill="none" stroke="#22c55e" strokeWidth="3" points={forecast.points.map((y, i) => `${20 + i * 40},${y}`).join(' ')} />
+            <polyline fill="none" stroke="#22c55e" strokeWidth="3" points={normPoints.map((y, i) => `${20 + i * 40},${y}`).join(' ')} />
             {/* Highlighted point */}
-            <circle cx={20 + forecast.highlightIndex * 40} cy={forecast.points[forecast.highlightIndex]} r="5" fill="#fff" stroke="#22c55e" strokeWidth="3" />
+            <circle cx={20 + forecast.highlightIndex * 40} cy={highlightY} r="5" fill="#fff" stroke="#22c55e" strokeWidth="3" />
             {/* Tooltip box */}
-            <rect x={30 + forecast.highlightIndex * 40} y="10" width="60" height="28" rx="8" fill="#fff" stroke="#e5e7eb" />
-            <text x={60 + forecast.highlightIndex * 40} y="26" textAnchor="middle" fontSize="12" fill="#222">{forecast.highlightLabel}</text>
-            <text x={60 + forecast.highlightIndex * 40} y="40" textAnchor="middle" fontSize="10" fill="#888">{forecast.highlightAQI} AQI</text>
+            <rect x={30 + forecast.highlightIndex * 40} y="20" width="60" height="28" rx="8" fill="#fff" stroke="#e5e7eb" />
+            <text x={60 + forecast.highlightIndex * 40} y="36" textAnchor="middle" fontSize="12" fill="#222">{forecast.highlightLabel}</text>
+            <text x={60 + forecast.highlightIndex * 40} y="50" textAnchor="middle" fontSize="10" fill="#888">{forecast.highlightAQI} AQI</text>
           </svg>
           <div className="flex justify-between text-xs text-gray-400 mt-2 px-1">
             {forecast.times.map((t) => <span key={t}>{t}</span>)}
