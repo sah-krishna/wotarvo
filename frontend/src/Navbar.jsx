@@ -10,8 +10,8 @@ export default function Navbar() {
   return (
     <header className="flex justify-between items-center pt-10 px-8 md:px-20">
       <div className="flex items-center gap-2">
-        <img src="https://via.placeholder.com/60x40?text=Logo" alt="Logo" className="h-12 drop-shadow" />
-        <span className="font-bold text-xl text-sky-700 tracking-tight hidden sm:inline">WETAIRY</span>
+        <img src="src/assets/logo.png" alt="Logo" className="h-25 drop-shadow" width = "130px" />
+        <span className="font-bold text-xl text-sky-700 tracking-tight hidden sm:inline" width = "100px" ></span>
       </div>
       <nav className="bg-white/80 backdrop-blur rounded-full px-8 py-2 flex gap-6 shadow-md border border-gray-100">
         {menu.map((item) => (
