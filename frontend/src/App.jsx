@@ -56,23 +56,76 @@ function App() {
             <span className="bg-white/80 border border-sky-100 text-sky-700 px-3 py-1 rounded-full text-xs font-medium">Accessible to All</span>
           </div>
           {/* Stats Row */}
-          <div className="flex gap-8 mt-6">
+          <div className="flex flex-wrap gap-8 mt-6">
             <div className="flex flex-col items-center">
               <span className="text-2xl font-bold text-sky-700">98%</span>
               <span className="text-xs text-gray-500">PM2.5 Capture Rate</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-sky-700">12k+</span>
+              <span className="text-2xl font-bold text-sky-700">4+</span>
               <span className="text-xs text-gray-500">Devices Deployed</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-sky-700">99%</span>
+              <span className="text-2xl font-bold text-sky-700">84%</span>
               <span className="text-xs text-gray-500">User Satisfaction</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-2xl font-bold text-sky-700">50+</span>
-              <span className="text-xs text-gray-500">Cities Served</span>
+              <span className="text-2xl font-bold text-sky-700">10+</span>
+              <span className="text-xs text-gray-500">Clients Served</span>
             </div>
+          </div>
+        </div>
+      </section>
+      {/* Modern Unique Grid Section */}
+      <section className="w-full bg-gray-900 py-16 px-4 md:px-20">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 grid-rows-6 md:grid-rows-3 gap-6 md:gap-8">
+          {/* Image Placeholder (replace 'grid-image-main' with your image later) */}
+          <div className="bg-gray-700 rounded-2xl row-span-2 md:row-span-3 col-span-2 flex items-center justify-center" style={{minHeight:'220px'}}>
+            <span className="text-white text-lg">grid-image-main</span>
+          </div>
+          {/* Card: Higher Efficiency */}
+          <div className="bg-lime-100 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-gray-900">40%</span>
+            <div className="text-gray-700 font-medium mt-2">Higher Efficiency</div>
+            <div className="text-xs text-gray-500 mt-4">Compared to conventional air filters</div>
+          </div>
+          {/* Card: Cost Reduction */}
+          <div className="bg-lime-100 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-gray-900">70%</span>
+            <div className="text-gray-700 font-medium mt-2">Cost Reduction</div>
+            <div className="text-xs text-gray-500 mt-4">Lower operational costs for users</div>
+          </div>
+          {/* Card: Installation Time */}
+          <div className="bg-white rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-gray-900">24hrs</span>
+            <div className="text-gray-700 font-medium mt-2">Installation Time</div>
+            <div className="text-xs text-gray-500 mt-4">Quick and easy setup</div>
+          </div>
+          {/* Card: Filter Replacements */}
+          <div className="bg-white rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-gray-900">0</span>
+            <div className="text-gray-700 font-medium mt-2">Filter Replacements</div>
+            <div className="text-xs text-gray-500 mt-4">No recurring filter costs</div>
+          </div>
+          {/* Card: Devices Deployed */}
+          <div className="bg-white/10 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-sky-400">4+</span>
+            <div className="text-gray-200 font-medium mt-2">Devices Deployed</div>
+          </div>
+          {/* Card: User Satisfaction */}
+          <div className="bg-white/10 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-sky-400">84%</span>
+            <div className="text-gray-200 font-medium mt-2">User Satisfaction</div>
+          </div>
+          {/* Card: Clients Served */}
+          <div className="bg-white/10 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-sky-400">10+</span>
+            <div className="text-gray-200 font-medium mt-2">Clients Served</div>
+          </div>
+          {/* Card: PM2.5 Capture Rate */}
+          <div className="bg-white/10 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <span className="text-3xl font-bold text-sky-400">98%</span>
+            <div className="text-gray-200 font-medium mt-2">PM2.5 Capture Rate</div>
           </div>
         </div>
       </section>
