@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
+import { MdDashboard } from 'react-icons/md';
 
 const menu = [
   { label: 'Home', path: '/', icon: null, exact: true },
   { label: 'About', path: '/about', icon: null },
-  { label: 'Dashboard', path: '/dashboard', icon: '📊' },
+  { label: 'Dashboard', path: '/dashboard', icon: <MdDashboard />, glassy: true },
 ];
 
 export default function Navbar() {
@@ -20,7 +21,9 @@ export default function Navbar() {
             to={item.path}
             end={item.exact || false}
             className={({ isActive }) =>
-              isActive
+              isActive && item.glassy
+                ? 'flex items-center gap-1 text-white bg-white/30 backdrop-blur-md border border-white/40 shadow-lg text-base px-4 py-2 rounded-full font-medium transition'
+                : isActive
                 ? 'flex items-center gap-1 text-white bg-black text-base px-4 py-2 rounded-full font-medium transition'
                 : 'flex items-center gap-1 text-black text-base px-4 py-2 rounded-full font-medium hover:bg-gray-100 transition'
             }

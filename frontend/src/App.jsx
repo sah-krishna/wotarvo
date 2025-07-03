@@ -1,6 +1,7 @@
 // import './App.css'
 import Navbar from './Navbar'
 import { Link } from 'react-router-dom'
+import { MdDashboard } from 'react-icons/md'
 
 function App() {
   return (
@@ -15,11 +16,11 @@ function App() {
       </div>
       <Navbar />
       <section className="flex items-center min-h-[70vh] pt-16 md:pt-28 px-8 md:px-20">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-10 md:p-14 max-w-xl shadow-lg border border-white/20">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 drop-shadow-sm">
-            Clean Air. Clear Mind.
+        <div className="bg-white/40 backdrop-blur-md rounded-2xl p-10 md:p-14 max-w-xl shadow-lg border border-white/30 flex flex-col items-start gap-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-sky-700 mb-2 drop-shadow-sm">
+            Every Breath, Monitored. Every Space, Purified.
           </h1>
-          <p className="text-gray-800 text-lg mb-6 font-medium">
+          <p className="text-gray-800 text-lg font-medium">
             Real-time air quality monitoring and advanced filtration for a healthier tomorrow.
           </p>
           <p className="text-sky-700 text-base font-semibold">
