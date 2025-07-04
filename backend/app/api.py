@@ -5,7 +5,17 @@ from . import crud, schemas, database
 
 router = APIRouter()
 
-@router.get('/cities', response_model=List[schemas.CityRead])
+# Country endpoints
+@router.get('/countries', response_model=List[schemas.CountryRead])
+async def list_countries(db: AsyncSession = Depends(database.get_db)):
+    return await crud.get_countries(db)
+
+@router.post('/countries/', response_model=schemas.CountryRead)
+async def create_country(country: schemas.CountryCreate, db: AsyncSession = Depends(database.get_db)):
+    return await crud.create_country(db, country)
+
+# City endpoints
+@router.get('/cities', response_model=List[schemas.CityWithCountryRead])
 async def list_cities(db: AsyncSession = Depends(database.get_db)):
     return await crud.get_cities(db)
 

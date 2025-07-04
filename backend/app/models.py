@@ -2,13 +2,20 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, fun
 from sqlalchemy.orm import relationship
 from .database import Base
 
+class Country(Base):
+    __tablename__ = 'countries'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    code = Column(String(2), nullable=False, unique=True)
+    cities = relationship('City', back_populates='country_rel')
+
 class City(Base):
     __tablename__ = 'cities'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    country = Column(String, nullable=False)
-    country_code = Column(String(2), nullable=False)
+    country_id = Column(Integer, ForeignKey('countries.id'), nullable=False)
     aqi_records = relationship('AQIRecord', back_populates='city')
+    country_rel = relationship('Country', back_populates='cities')
 
 class AQIRecord(Base):
     __tablename__ = 'aqi_records'

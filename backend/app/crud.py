@@ -1,11 +1,28 @@
 from sqlalchemy.future import select
 from sqlalchemy import desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import NoResultFound
 from . import models, schemas
 from typing import List, Optional
+from sqlalchemy.orm import joinedload
 
-async def get_cities(db: AsyncSession) -> List[models.City]:
-    result = await db.execute(select(models.City))
+async def get_countries(db: AsyncSession):
+    result = await db.execute(select(models.Country))
+    return result.scalars().all()
+
+async def create_country(db: AsyncSession, country: schemas.CountryCreate):
+    db_country = models.Country(**country.dict())
+    db.add(db_country)
+    await db.commit()
+    await db.refresh(db_country)
+    return db_country
+
+async def get_country_by_id(db: AsyncSession, country_id: int):
+    result = await db.execute(select(models.Country).where(models.Country.id == country_id))
+    return result.scalar_one_or_none()
+
+async def get_cities(db: AsyncSession):
+    result = await db.execute(select(models.City).options(joinedload(models.City.country_rel)))
     return result.scalars().all()
 
 async def get_city(db: AsyncSession, city_id: int) -> Optional[models.City]:

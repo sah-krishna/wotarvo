@@ -1,25 +1,53 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 function getAQIReview(aqi) {
-  if (aqi <= 50) return { emoji: '😍', label: 'Very Good', color: 'green' };
-  if (aqi <= 100) return { emoji: '😊', label: 'Good', color: 'yellow' };
-  if (aqi <= 150) return { emoji: '😐', label: 'Moderate', color: 'orange' };
-  if (aqi <= 200) return { emoji: '😷', label: 'Unhealthy', color: 'red' };
-  return { emoji: '☠️', label: 'Hazardous', color: 'purple' };
+  if (aqi <= 50) return { emoji: '\ud83d\ude0d', label: 'Very Good', color: 'green' };
+  if (aqi <= 100) return { emoji: '\ud83d\ude0a', label: 'Good', color: 'yellow' };
+  if (aqi <= 150) return { emoji: '\ud83d\ude10', label: 'Moderate', color: 'orange' };
+  if (aqi <= 200) return { emoji: '\ud83d\ude37', label: 'Unhealthy', color: 'red' };
+  return { emoji: '\u2620\ufe0f', label: 'Hazardous', color: 'purple' };
 }
 
-function AQIGauge({ value }) {
-  const percent = Math.min(Math.max(value, 0), 300) / 300;
+// Animated AQI Gauge
+function AQIGauge({ value, onDisplayValueChange }) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const rafRef = useRef();
+
+  useEffect(() => {
+    if (displayValue === value) return;
+    let start = null;
+    const duration = 800; // ms
+    const initial = displayValue;
+    const delta = value - initial;
+    function animate(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const newValue = initial + delta * progress;
+      setDisplayValue(newValue);
+      if (onDisplayValueChange) onDisplayValueChange(newValue);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+        if (onDisplayValueChange) onDisplayValueChange(value);
+      }
+    }
+    rafRef.current = requestAnimationFrame(animate);
+    return () => rafRef.current && cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line
+  }, [value]);
+
+  const percent = Math.min(Math.max(displayValue, 0), 300) / 300;
   const angle = percent * 180;
   const r = 36; // needle length
   const cx = 40;
   const cy = 40;
   const needleWidth = 6; // width of the base of the needle
   let needleColor = '#ef4444'; // red by default
-  if (value > 200) needleColor = '#a21caf';
-  else if (value > 150) needleColor = '#ef4444';
-  else if (value > 100) needleColor = '#f59e42';
-  else if (value > 50) needleColor = '#eab308';
+  if (displayValue > 200) needleColor = '#a21caf';
+  else if (displayValue > 150) needleColor = '#ef4444';
+  else if (displayValue > 100) needleColor = '#f59e42';
+  else if (displayValue > 50) needleColor = '#eab308';
   else needleColor = '#22c55e';
 
   // Calculate needle triangle points
@@ -52,7 +80,7 @@ function AQIGauge({ value }) {
             ${baseRightX},${baseRightY}
           `}
           fill={needleColor}
-          style={{ filter: 'drop-shadow(0 1px 2px #0003)' }}
+          style={{ filter: 'drop-shadow(0 1px 2px #0003)', transition: 'fill 0.3s' }}
         />
         {/* Needle base (pivot) */}
         <circle cx={cx} cy={cy} r="5" fill="#222" stroke="#fff" strokeWidth="2" />
@@ -68,15 +96,41 @@ function normalizePoints(points, minY = 20, maxY = 90) {
   return points.map(v => maxY - ((v - min) / (max - min)) * (maxY - minY));
 }
 
+// Custom hook for animating a number value
+function useAnimatedNumber(value, duration = 800) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const rafRef = useRef();
+  useEffect(() => {
+    if (displayValue === value) return;
+    let start = null;
+    const initial = displayValue;
+    const delta = value - initial;
+    function animate(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      setDisplayValue(initial + delta * progress);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+      }
+    }
+    rafRef.current = requestAnimationFrame(animate);
+    return () => rafRef.current && cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line
+  }, [value]);
+  return displayValue;
+}
+
 export default function AQIGaugeCard({
   aqi = 20,
   review,
-  location = { city: 'Washington, D.C.', country: 'United States', flag: '🇺🇸' },
+  location = { city: 'Washington, D.C.', country: 'United States', flag: '\ud83c\uddfa\ud83c\uddf8' },
   parameters = [
-    { label: 'PM2.5', value: 10.05, unit: 'µg/m³' },
-    { label: 'PM10', value: 12.43, unit: 'µg/m³' },
-    { label: 'NO₂', value: 8.57, unit: 'µg/m³' },
-    { label: 'O₃', value: 30.0, unit: 'µg/m³' },
+    { label: 'PM2.5', value: 10.05, unit: '\u00b5g/m\u00b3' },
+    { label: 'PM10', value: 12.43, unit: '\u00b5g/m\u00b3' },
+    { label: 'NO\u2082', value: 8.57, unit: '\u00b5g/m\u00b3' },
+    { label: 'O\u2083', value: 30.0, unit: '\u00b5g/m\u00b3' },
   ],
   forecast = {
     points: [40, 35, 38, 30, 32, 28, 34, 30],
@@ -93,6 +147,18 @@ export default function AQIGaugeCard({
     computedReview.color === 'red' ? 'bg-red-100 text-red-700' :
     'bg-purple-100 text-purple-700';
 
+  // Animate AQI number in sync with needle
+  const [animatedAQI, setAnimatedAQI] = useState(aqi);
+  useEffect(() => { setAnimatedAQI(aqi); }, [aqi]); // reset if card is remounted
+
+  // Animate parameter values
+  const animatedParams = parameters.map((p, i) => {
+    return {
+      ...p,
+      animatedValue: useAnimatedNumber(p.value, 800)
+    };
+  });
+
   // Normalize forecast points for SVG
   const normPoints = normalizePoints(forecast.points);
   const highlightY = normPoints[forecast.highlightIndex];
@@ -108,9 +174,9 @@ export default function AQIGaugeCard({
       </div>
       {/* AQI Meter */}
       <div className="absolute right-6 top-6 flex flex-col items-center">
-        <AQIGauge value={aqi} />
+        <AQIGauge value={aqi} onDisplayValueChange={setAnimatedAQI} />
         <div className="text-center mt-1">
-          <div className="text-2xl font-bold text-gray-800">{aqi}</div>
+          <div className="text-2xl font-bold text-gray-800">{Math.round(animatedAQI)}</div>
           <div className="text-xs text-gray-400 -mt-1">AQI</div>
         </div>
       </div>
@@ -124,9 +190,9 @@ export default function AQIGaugeCard({
       </div>
       {/* Parameters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {parameters.map((p, i) => (
+        {animatedParams.map((p, i) => (
           <div key={p.label} className="bg-gray-50 rounded-xl p-3 text-center shadow-sm">
-            <div className="text-lg font-bold text-gray-800">{p.value}</div>
+            <div className="text-lg font-bold text-gray-800">{p.animatedValue.toFixed(1)}</div>
             <div className="text-xs text-gray-500">{p.label}<br />{p.unit}</div>
           </div>
         ))}

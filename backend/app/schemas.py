@@ -2,11 +2,21 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
+class CountryBase(BaseModel):
+    name: str
+    code: str
+
+class CountryCreate(CountryBase):
+    pass
+
+class CountryRead(CountryBase):
+    id: int
+    class Config:
+        orm_mode = True
+
 class CityBase(BaseModel):
     name: str
-    country: str
-    country_code: str
-    
+    country_id: int
 
 class CityCreate(CityBase):
     pass
@@ -15,6 +25,9 @@ class CityRead(CityBase):
     id: int
     class Config:
         orm_mode = True
+
+class CityWithCountryRead(CityRead):
+    country_rel: CountryRead
 
 class AQIRecordBase(BaseModel):
     aqi: int
