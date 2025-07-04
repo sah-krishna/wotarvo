@@ -45,6 +45,7 @@ export default function Dashboard() {
 
           // Map backend fields to AQIGaugeCard props
           return {
+            id: city.id,
             aqi: latest ? latest.aqi : 0,
             location: {
               city: city.name,
@@ -77,7 +78,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 600000); // 10 minutes
+    const interval = setInterval(fetchData, 60000); // 1 minute
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -93,8 +94,8 @@ export default function Dashboard() {
         <div className="text-center text-red-500">{error}</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
-          {cityData.map((data, idx) => (
-            <AQIGaugeCard key={data.location.city + idx} {...data} />
+          {cityData.map((data) => (
+            <AQIGaugeCard key={data.id} {...data} />
           ))}
         </div>
       )}
