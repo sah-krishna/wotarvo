@@ -1,4 +1,14 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+
+const BACKEND_URL = 'http://localhost:8000';
+
+// Utility to get flag emoji from country code
+function getFlagEmoji(countryCode) {
+  if (!countryCode) return '🏳️';
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
+}
 
 function getAQIReview(aqi) {
   if (aqi <= 50) return { emoji: '\ud83d\ude0d', label: 'Very Good', color: 'green' };
@@ -117,54 +127,168 @@ function useAnimatedNumber(value, duration = 800) {
     }
     rafRef.current = requestAnimationFrame(animate);
     return () => rafRef.current && cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line
-  }, [value]);
+  }, [value, duration]);
   return displayValue;
 }
 
-export default function AQIGaugeCard({
-  aqi = 20,
-  review,
-  location = { city: 'Washington, D.C.', country: 'United States', flag: '\ud83c\uddfa\ud83c\uddf8' },
-  parameters = [
-    { label: 'PM2.5', value: 10.05, unit: '\u00b5g/m\u00b3' },
-    { label: 'PM10', value: 12.43, unit: '\u00b5g/m\u00b3' },
-    { label: 'NO\u2082', value: 8.57, unit: '\u00b5g/m\u00b3' },
-    { label: 'O\u2083', value: 30.0, unit: '\u00b5g/m\u00b3' },
-  ],
-  forecast = {
-    points: [40, 35, 38, 30, 32, 28, 34, 30],
-    highlightIndex: 5,
-    times: ['04:00', '05:00', '06:00', '07:00', '08:00', '09:00'],
-    highlightLabel: '08.29',
-    highlightAQI: 20,
-  },
+// Custom hook for managing live air quality data
+function useLiveAQIData(cityId, cityName, countryName, countryCode) {
+  const [data, setData] = useState({
+    aqi: 0,
+    parameters: [
+      { label: 'PM2.5', value: 0, unit: 'µg/m³' },
+      { label: 'PM10', value: 0, unit: 'µg/m³' },
+      { label: 'NO₂', value: 0, unit: 'µg/m³' },
+      { label: 'O₃', value: 0, unit: 'µg/m³' },
+    ],
+    forecast: {
+      points: [],
+      highlightIndex: 0,
+      times: [],
+      highlightLabel: '',
+      highlightAQI: 0,
+    },
+    location: {
+      city: cityName,
+      country: countryName,
+      flag: getFlagEmoji(countryCode),
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch latest AQI
+      const latestRes = await fetch(`${BACKEND_URL}/aqi/latest?city_id=${cityId}`);
+      let latest = null;
+      if (latestRes.ok) {
+        latest = await latestRes.json();
+      }
+
+      // Fetch AQI history (for forecast)
+      const historyRes = await fetch(`${BACKEND_URL}/aqi/history?city_id=${cityId}&limit=8`);
+      let history = [];
+      if (historyRes.ok) {
+        history = await historyRes.json();
+      }
+
+      // Update state with new data
+      setData(prevData => ({
+        ...prevData,
+        aqi: latest ? latest.aqi : 0,
+        parameters: [
+          { label: 'PM2.5', value: latest ? latest.pm25 : 0, unit: 'µg/m³' },
+          { label: 'PM10', value: latest ? latest.pm10 : 0, unit: 'µg/m³' },
+          { label: 'NO₂', value: latest ? latest.no2 : 0, unit: 'µg/m³' },
+          { label: 'O₃', value: latest ? latest.o3 : 0, unit: 'µg/m³' },
+        ],
+        forecast: {
+          points: history.map((h) => h.aqi),
+          highlightIndex: history.length - 1,
+          times: history.map((h) => new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
+          highlightLabel: history.length > 0 ? new Date(history[history.length - 1].timestamp).toLocaleDateString() : '',
+          highlightAQI: history.length > 0 ? history[history.length - 1].aqi : 0,
+        },
+      }));
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }, [cityId]);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Set up interval for live updates
+  useEffect(() => {
+    const interval = setInterval(fetchData, 60000); // 1 minute
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+// Memoized AQIGaugeCard component
+const AQIGaugeCard = React.memo(function AQIGaugeCard({ 
+  cityId, 
+  cityName, 
+  countryName, 
+  countryCode 
 }) {
-  const computedReview = review || getAQIReview(aqi);
-  const reviewBg = computedReview.color === 'green' ? 'bg-green-100 text-green-700' :
-    computedReview.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
-    computedReview.color === 'orange' ? 'bg-orange-100 text-orange-700' :
-    computedReview.color === 'red' ? 'bg-red-100 text-red-700' :
-    'bg-purple-100 text-purple-700';
+  const { data, loading, error } = useLiveAQIData(cityId, cityName, countryName, countryCode);
+  
+  const computedReview = useMemo(() => getAQIReview(data.aqi), [data.aqi]);
+  
+  const reviewBg = useMemo(() => {
+    return computedReview.color === 'green' ? 'bg-green-100 text-green-700' :
+      computedReview.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
+      computedReview.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+      computedReview.color === 'red' ? 'bg-red-100 text-red-700' :
+      'bg-purple-100 text-purple-700';
+  }, [computedReview.color]);
 
   // Animate AQI number in sync with needle
-  const [animatedAQI, setAnimatedAQI] = useState(aqi);
-  useEffect(() => { setAnimatedAQI(aqi); }, [aqi]); // reset if card is remounted
+  const [animatedAQI, setAnimatedAQI] = useState(data.aqi);
+  useEffect(() => { setAnimatedAQI(data.aqi); }, [data.aqi]);
 
-  // Animate parameter values
-  const animatedParams = parameters.map((p, i) => {
-    return {
-      ...p,
-      animatedValue: useAnimatedNumber(p.value, 800)
-    };
-  });
+  // Animate parameter values individually
+  const animatedPM25 = useAnimatedNumber(data.parameters[0]?.value || 0, 800);
+  const animatedPM10 = useAnimatedNumber(data.parameters[1]?.value || 0, 800);
+  const animatedNO2 = useAnimatedNumber(data.parameters[2]?.value || 0, 800);
+  const animatedO3 = useAnimatedNumber(data.parameters[3]?.value || 0, 800);
+
+  // Create animated parameters array
+  const animatedParams = useMemo(() => [
+    { label: 'PM2.5', value: data.parameters[0]?.value || 0, animatedValue: animatedPM25, unit: 'µg/m³' },
+    { label: 'PM10', value: data.parameters[1]?.value || 0, animatedValue: animatedPM10, unit: 'µg/m³' },
+    { label: 'NO₂', value: data.parameters[2]?.value || 0, animatedValue: animatedNO2, unit: 'µg/m³' },
+    { label: 'O₃', value: data.parameters[3]?.value || 0, animatedValue: animatedO3, unit: 'µg/m³' },
+  ], [data.parameters, animatedPM25, animatedPM10, animatedNO2, animatedO3]);
 
   // Normalize forecast points for SVG
-  const normPoints = normalizePoints(forecast.points);
-  const highlightY = normPoints[forecast.highlightIndex];
-  const minVal = Math.min(...forecast.points);
-  const maxVal = Math.max(...forecast.points);
-  const midVal = Math.round((minVal + maxVal) / 2);
+  const { normPoints, highlightY, minVal, maxVal, midVal } = useMemo(() => {
+    const points = data.forecast.points;
+    if (points.length === 0) {
+      return { normPoints: [], highlightY: 0, minVal: 0, maxVal: 0, midVal: 0 };
+    }
+    const normPoints = normalizePoints(points);
+    const highlightY = normPoints[data.forecast.highlightIndex] || 0;
+    const minVal = Math.min(...points);
+    const maxVal = Math.max(...points);
+    const midVal = Math.round((minVal + maxVal) / 2);
+    return { normPoints, highlightY, minVal, maxVal, midVal };
+  }, [data.forecast]);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-xl w-full relative animate-pulse">
+        <div className="h-8 bg-gray-200 rounded mb-4"></div>
+        <div className="h-32 bg-gray-200 rounded mb-4"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="h-32 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-xl w-full relative">
+        <div className="text-center text-red-500 py-8">
+          <div className="text-lg font-semibold mb-2">Error Loading Data</div>
+          <div className="text-sm">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-xl w-full relative">
@@ -174,7 +298,7 @@ export default function AQIGaugeCard({
       </div>
       {/* AQI Meter */}
       <div className="absolute right-6 top-6 flex flex-col items-center">
-        <AQIGauge value={aqi} onDisplayValueChange={setAnimatedAQI} />
+        <AQIGauge value={data.aqi} onDisplayValueChange={setAnimatedAQI} />
         <div className="text-center mt-1">
           <div className="text-2xl font-bold text-gray-800">{Math.round(animatedAQI)}</div>
           <div className="text-xs text-gray-400 -mt-1">AQI</div>
@@ -183,10 +307,10 @@ export default function AQIGaugeCard({
       {/* Location */}
       <div className="flex flex-col items-center mt-8 mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">{location.flag}</span>
-          <span className="text-lg font-semibold text-gray-800">{location.city}</span>
+          <span className="text-2xl">{data.location.flag}</span>
+          <span className="text-lg font-semibold text-gray-800">{data.location.city}</span>
         </div>
-        <div className="text-gray-400 text-sm">{location.country}</div>
+        <div className="text-gray-400 text-sm">{data.location.country}</div>
       </div>
       {/* Parameters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -197,7 +321,7 @@ export default function AQIGaugeCard({
           </div>
         ))}
       </div>
-      {/* Air Quality Forecast Chart (SVG placeholder) */}
+      {/* Air Quality Forecast Chart */}
       <div className="mt-2">
         <div className="font-semibold text-gray-700 mb-2">Air Quality Forecast</div>
         <div className="bg-gray-100 rounded-xl p-4">
@@ -216,19 +340,29 @@ export default function AQIGaugeCard({
               <text x="8" y="24" fontSize="10" fill="#888" textAnchor="start">{maxVal}</text>
             </g>
             {/* Forecast line */}
-            <polyline fill="none" stroke="#22c55e" strokeWidth="3" points={normPoints.map((y, i) => `${20 + i * 40},${y}`).join(' ')} />
+            {normPoints.length > 0 && (
+              <polyline fill="none" stroke="#22c55e" strokeWidth="3" points={normPoints.map((y, i) => `${20 + i * 40},${y}`).join(' ')} />
+            )}
             {/* Highlighted point */}
-            <circle cx={20 + forecast.highlightIndex * 40} cy={highlightY} r="5" fill="#fff" stroke="#22c55e" strokeWidth="3" />
+            {normPoints.length > 0 && (
+              <circle cx={20 + data.forecast.highlightIndex * 40} cy={highlightY} r="5" fill="#fff" stroke="#22c55e" strokeWidth="3" />
+            )}
             {/* Tooltip box */}
-            <rect x={30 + forecast.highlightIndex * 40} y="20" width="60" height="28" rx="8" fill="#fff" stroke="#e5e7eb" />
-            <text x={60 + forecast.highlightIndex * 40} y="36" textAnchor="middle" fontSize="12" fill="#222">{forecast.highlightLabel}</text>
-            <text x={60 + forecast.highlightIndex * 40} y="50" textAnchor="middle" fontSize="10" fill="#888">{forecast.highlightAQI} AQI</text>
+            {normPoints.length > 0 && (
+              <>
+                <rect x={30 + data.forecast.highlightIndex * 40} y="20" width="60" height="28" rx="8" fill="#fff" stroke="#e5e7eb" />
+                <text x={60 + data.forecast.highlightIndex * 40} y="36" textAnchor="middle" fontSize="12" fill="#222">{data.forecast.highlightLabel}</text>
+                <text x={60 + data.forecast.highlightIndex * 40} y="50" textAnchor="middle" fontSize="10" fill="#888">{data.forecast.highlightAQI} AQI</text>
+              </>
+            )}
           </svg>
           <div className="flex justify-between text-xs text-gray-400 mt-2 px-1">
-            {forecast.times.map((t) => <span key={t}>{t}</span>)}
+            {data.forecast.times.map((t) => <span key={t}>{t}</span>)}
           </div>
         </div>
       </div>
     </div>
   );
-} 
+});
+
+export default AQIGaugeCard; 
